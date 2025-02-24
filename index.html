@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Grade de Cotas</title>
+  <style>
+    /* Grade com 10 colunas */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+    }
+    .cell {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+    /* Célula do tipo Sorteio (fundo dourado) */
+    .sorteio {
+      background-color: gold;
+      font-weight: bold;
+    }
+    /* Célula do tipo Lance (fundo verde e texto branco) */
+    .lance {
+      background-color: green;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid" id="grid"></div>
+  
+  <script>
+    const totalCelulas = 2000;
+    const grid = document.getElementById('grid');
+    
+    // Cria a grade com 2000 células numeradas de 1 a 2000
+    for (let i = 1; i <= totalCelulas; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.id = 'cell-' + i;
+      cell.textContent = i;
+      grid.appendChild(cell);
+    }
+    
+    // Aplica uma borda azul na célula com o número 1603
+    const cell1603 = document.getElementById('cell-1603');
+    if (cell1603) {
+      cell1603.style.border = '2px solid blue';
+    }
+    
+    // Busca o arquivo dados.json e mapeia as cotas na grade
+    fetch('dados.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Erro ao carregar dados.json');
+        }
+        return response.json();
+      })
+      .then(dados => {
+        dados.forEach(item => {
+          // Extrai o número da cota (ex.: "0199-00" vira 199)
+          const numeroCota = parseInt(item.Cota.split('-')[0], 10);
+          if (numeroCota >= 1 && numeroCota <= totalCelulas) {
+            const cell = document.getElementById('cell-' + numeroCota);
+            if (cell) {
+              cell.textContent = item.Cota;
+              // Aplica o estilo de acordo com o Tipo
+              if (item.Tipo === 'Sorteio') {
+                cell.classList.add('sorteio');
+              } else if (item.Tipo === 'Lance') {
+                cell.classList.add('lance');
+              }
+            }
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+      });
+  </script>
+</body>
+</html>
