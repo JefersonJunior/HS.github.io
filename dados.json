@@ -1485,158 +1485,328 @@
     "Asembleia": "31"
   },
   {
-    "Cota": "0936-00",
+    "Cota": "0331-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0332-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0333-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0335-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0336-00",
+    "Tipo": "Sorteio",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0337-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0338-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0339-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0340-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0341-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0645-00",
+    "Tipo": "Lance",
+    "Asembleia": "32"
+  },
+  {
+    "Cota": "0952-00",
     "Tipo": "Lance",
     "Asembleia": "32"
   },
   {
     "Cota": "1157-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1158-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1160-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1161-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1162-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1164-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1165-00",
     "Tipo": "Sorteio",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1166-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1167-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1168-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
-  },
-  {
-    "Cota": "1171-00",
-    "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
     "Cota": "1172-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "33"
   },
   {
-    "Cota": "1460-00",
+    "Cota": "0059-00",
     "Tipo": "Lance",
-    "Asembleia": "32"
-  },
-  {
-    "Cota": "1470-00",
-    "Tipo": "Lance",
-    "Asembleia": "32"
-  },
-  {
-    "Cota": "1499-00",
-    "Tipo": "Lance",
-    "Asembleia": "32"
+    "Asembleia": "34"
   },
   {
     "Cota": "0165-00",
     "Tipo": "Sorteio",
-    "Asembleia": "33"
-  },
-  {
-    "Cota": "0629-00",
-    "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1247-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1626-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1646-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1647-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1648-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1649-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1650-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1651-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1653-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1654-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1656-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
     "Cota": "1657-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "34"
   },
   {
-    "Cota": "1974-00",
+    "Cota": "0094-00",
     "Tipo": "Lance",
-    "Asembleia": "33"
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0449-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0451-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0453-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0458-00",
+    "Tipo": "Sorteio",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0461-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0462-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0464-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0465-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0466-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0746-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0877-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "1019-00",
+    "Tipo": "Lance",
+    "Asembleia": "35"
+  },
+  {
+    "Cota": "0224-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0342-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0344-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0345-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0348-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0349-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0350-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0351-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0352-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0353-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0355-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0431-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0634-00",
+    "Tipo": "Sorteio",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "0924-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
+  },
+  {
+    "Cota": "1757-00",
+    "Tipo": "Lance",
+    "Asembleia": "36"
   }
 ]
