@@ -153,41 +153,50 @@
   </div>
 
   <script>
-    // ===== Utils =====
-    const BRL = v => (isNaN(v)? '—' : v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'}));
-    const pct = (a,b) => b>0 ? Math.round((a/b)*100) : 0;
+  // ===== Utils =====
+  const BRL = v => (isNaN(v)? '—' : v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'}));
+  const pct = (a,b) => b>0 ? Math.round((a/b)*100) : 0;
+  const toNumberBR = s => {
+    if (s == null) return 0;
+    return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0;
+  };
+  // remove sequências de pontos e espaços redundantes; mantém parênteses e datas
+  const normalizeLabel = s => String(s||'')
+    .replace(/\.+/g, ' ')         // ... -> espaço
+    .replace(/\s{2,}/g, ' ')      // múltiplos espaços -> 1
+    .trim();
 
-    const safeFetchJson = async (path) => {
-      const url = encodeURI(path);
-      const r = await fetch(url);
-      if(!r.ok) throw new Error('Falha ao carregar '+path);
-      return r.json();
-    };
+  const safeFetchJson = async (path) => {
+    const r = await fetch(encodeURI(path));
+    if(!r.ok) throw new Error('Falha ao carregar '+path);
+    return r.json();
+  };
 
-    // ===== DOM refs =====
-    const kpiDispon = document.getElementById('kpi-dispon');
-    const kpiDisponRef = document.getElementById('kpi-dispon-ref');
-    const kpiColetado = document.getElementById('kpi-coletado');
-    const kpiColetadoAcc = document.getElementById('kpi-coletado-acc');
-    const kpiUtilizado = document.getElementById('kpi-utilizado');
-    const kpiUtilizadoAcc = document.getElementById('kpi-utilizado-acc');
-    const kpiSaldo = document.getElementById('kpi-saldo');
-    const kpiMix = document.getElementById('kpi-mix');
+  // ===== DOM refs (iguais ao seu HTML) =====
+  const kpiDispon = document.getElementById('kpi-dispon');
+  const kpiDisponRef = document.getElementById('kpi-dispon-ref');
+  const kpiColetado = document.getElementById('kpi-coletado');
+  const kpiColetadoAcc = document.getElementById('kpi-coletado-acc');
+  const kpiUtilizado = document.getElementById('kpi-utilizado');
+  const kpiUtilizadoAcc = document.getElementById('kpi-utilizado-acc');
+  const kpiSaldo = document.getElementById('kpi-saldo');
+  const kpiMix = document.getElementById('kpi-mix');
 
-    const barLance = document.getElementById('bar-lance');
-    const barSorteio = document.getElementById('bar-sorteio');
-    const numLance = document.getElementById('num-lance');
-    const numSorteio = document.getElementById('num-sorteio');
-    const parcelaMedia = document.getElementById('parcela-media');
+  const barLance = document.getElementById('bar-lance');
+  const barSorteio = document.getElementById('bar-sorteio');
+  const numLance = document.getElementById('num-lance');
+  const numSorteio = document.getElementById('num-sorteio');
+  const parcelaMedia = document.getElementById('parcela-media');
 
-    const barsAssem = document.getElementById('bars-assem');
-    const labelsAssem = document.getElementById('labels-assem');
+  const barsAssem = document.getElementById('bars-assem');
+  const labelsAssem = document.getElementById('labels-assem');
 
-    const grid = document.getElementById('grid');
-    const pillTotal = document.getElementById('pill-total');
+  const grid = document.getElementById('grid');
+  const pillTotal = document.getElementById('pill-total');
 
-    // ===== Grade base 1..2000 =====
-    const totalCelulas = 2000;
+  // ===== Grade base 1..2000 =====
+  const totalCelulas = 2000;
+  if (grid && !grid.children.length){
     for (let i = 1; i <= totalCelulas; i++) {
       const cell = document.createElement('div');
       cell.classList.add('cell');
@@ -196,130 +205,123 @@
       grid.appendChild(cell);
     }
     const cell1603 = document.getElementById('cell-1603');
-    if (cell1603) {
-      cell1603.style.border = '2px solid #2c7df5';
-    }
+    if (cell1603) cell1603.style.border = '2px solid #2c7df5';
+  }
 
-    // ===== Carregar dados =====
-    Promise.all([
-      safeFetchJson('DemonstrativoGrupo.json'),
-      safeFetchJson('Contemplacoes.json'),
-      safeFetchJson('LancesLivres.json'),
-    ])
-    .then(([demonstrativo, contemplacoes, lancesLivres]) => {
-      // --- FINANCEIRO (pega último bloco de "Disponibilidades (Em: dd/mm/aaaa)")
-      const dispRows = demonstrativo.filter(x => String(x['Discriminação']||'').trim().startsWith('Disponibilidades (Em:'));
-      const lastDisp = dispRows[dispRows.length-1];
-      const dispLabel = lastDisp?.['Discriminação'] || '';
-      const dispValor = parseFloat(String(lastDisp?.['Saldo do Período']||'0').replace(/\./g,'').replace(',','.')) || 0;
+  // ===== Carregar dados com os NOVOS nomes =====
+  Promise.all([
+    safeFetchJson('DemonstrativoGrupo.json'),
+    safeFetchJson('Contemplacoes.json'),
+    safeFetchJson('LancesLivres.json'),
+  ])
+  .then(([demonstrativo, contemplacoes, lancesLivres]) => {
+    // --- FINANCEIRO
+    // normaliza labels uma vez para facilitar
+    const demoNorm = demonstrativo.map(x => ({
+      ...x,
+      _label: normalizeLabel(x['Discriminação'])
+    }));
 
-      // Coletado / Utilizado do mês (pega primeira ocorrência do mês corrente na planilha)
-      const rowColet = demonstrativo.find(x => String(x['Discriminação']||'').includes('(+ )') || String(x['Discriminação']||'').includes('(+) Recursos Coletados'));
-      const coletPeriodo = rowColet ? parseFloat(String(rowColet['Saldo do Período']||'0').replace(/\./g,'').replace(',','.')) : 0;
-      const coletAcc = rowColet ? parseFloat(String(rowColet['Saldo Acumulado']||'0').replace(/\./g,'').replace(',','.')) : 0;
+    // Disponibilidades (pega a ÚLTIMA ocorrência)
+    const dispRows = demoNorm.filter(r => /Disponibilidades \(Em:\s*\d{2}\/\d{2}\/\d{4}\)/i.test(r._label));
+    const lastDisp = dispRows[dispRows.length-1];
+    const dispLabel = lastDisp? lastDisp._label : '';
+    const dispValor = lastDisp? toNumberBR(lastDisp['Saldo do Período']) : 0;
 
-      const rowUtil = demonstrativo.find(x => String(x['Discriminação']||'').startsWith('(-) Recursos Utilizados'));
-      const utilPeriodo = rowUtil ? parseFloat(String(rowUtil['Saldo do Período']||'0').replace(/\./g,'').replace(',','.')) : 0;
-      const utilAcc = rowUtil ? parseFloat(String(rowUtil['Saldo Acumulado']||'0').replace(/\./g,'').replace(',','.')) : 0;
+    // (+) Recursos Coletados
+    const rowColet = demoNorm.find(r => /^\(\+\)?\s*Recursos\s*Coletados/i.test(r._label));
+    const coletPeriodo = toNumberBR(rowColet?.['Saldo do Período']);
+    const coletAcc = toNumberBR(rowColet?.['Saldo Acumulado']);
 
-      kpiDispon.textContent = BRL(dispValor);
-      kpiDisponRef.textContent = dispLabel || '—';
+    // (-) Recursos Utilizados
+    const rowUtil = demoNorm.find(r => /^\(-\)\s*Recursos\s*Utilizados/i.test(r._label));
+    const utilPeriodo = toNumberBR(rowUtil?.['Saldo do Período']);
+    const utilAcc = toNumberBR(rowUtil?.['Saldo Acumulado']);
 
-      kpiColetado.textContent = BRL(coletPeriodo);
-      kpiColetadoAcc.textContent = 'Acumulado: ' + BRL(coletAcc);
+    kpiDispon.textContent = BRL(dispValor);
+    kpiDisponRef.textContent = dispLabel || '—';
 
-      kpiUtilizado.textContent = BRL(utilPeriodo);
-      kpiUtilizadoAcc.textContent = 'Acumulado: ' + BRL(utilAcc);
+    kpiColetado.textContent = BRL(coletPeriodo);
+    kpiColetadoAcc.textContent = 'Acumulado: ' + BRL(coletAcc);
 
-      const saldoMes = coletPeriodo - utilPeriodo;
-      kpiSaldo.textContent = BRL(saldoMes);
+    kpiUtilizado.textContent = BRL(utilPeriodo);
+    kpiUtilizadoAcc.textContent = 'Acumulado: ' + BRL(utilAcc);
 
-      // --- CONTEMPLAÇÕES (Lance x Sorteio, parcela média, por assembleia)
-      const tipoCounts = { Lance:0, Sorteio:0 };
-      let somaParcela = 0, contParcela = 0;
+    const saldoMes = coletPeriodo - utilPeriodo;
+    kpiSaldo.textContent = BRL(saldoMes);
 
-      contemplacoes.forEach(item => {
-        const tipo = (item.Tipo||'').trim();
-        if (tipoCounts.hasOwnProperty(tipo)) tipoCounts[tipo]++;
+    // --- CONTEMPLAÇÕES (Lance x Sorteio, parcela média, por assembleia)
+    const tipoCounts = { Lance:0, Sorteio:0 };
+    let somaParcela = 0, contParcela = 0;
 
-        const parc = parseInt(item.Parc || item['Parc.'] || item['Parcela'] || '0', 10);
-        if (!isNaN(parc) && parc>0){ somaParcela += parc; contParcela++; }
-      });
-
-      const totalCont = (tipoCounts.Lance || 0) + (tipoCounts.Sorteio || 0);
-      const pLance = pct(tipoCounts.Lance, totalCont);
-      const pSorteio = pct(tipoCounts.Sorteio, totalCont);
-
-      barLance.style.height = pLance + '%';
-      barSorteio.style.height = pSorteio + '%';
-      numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
-      numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
-
-      parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : '—');
-
-      kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
-
-      // --- Por assembleia (count)
-      const byAssem = {};
-      contemplacoes.forEach(i=>{
-        const a = String(i.Assembleia||'').trim();
-        if(!a) return;
-        byAssem[a] = (byAssem[a]||0)+1;
-      });
-      const assemEntries = Object.entries(byAssem).sort((a,b)=> Number(a[0])-Number(b[0]) );
-      const maxAssem = assemEntries.reduce((m, [,v])=> Math.max(m,v), 0);
-
-      barsAssem.innerHTML = '';
-      labelsAssem.innerHTML = '';
-      assemEntries.forEach(([asm, qty])=>{
-        const wrap = document.createElement('div');
-        wrap.style.flex='1'; wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.alignItems='center';
-        const bar = document.createElement('div');
-        bar.className='bar';
-        const span = document.createElement('span');
-        span.style.height = (maxAssem>0? Math.round((qty/maxAssem)*100):0) + '%';
-        bar.appendChild(span);
-        const lbl = document.createElement('div');
-        lbl.className='bar-label'; lbl.textContent = `#${asm}`;
-        const num = document.createElement('div');
-        num.className='bar-num'; num.textContent = qty;
-        wrap.appendChild(bar); wrap.appendChild(lbl); wrap.appendChild(num);
-        barsAssem.appendChild(wrap);
-        // legenda textual
-        const pill = document.createElement('span');
-        pill.className='pill'; pill.textContent = `Assembleia ${asm}: ${qty}`;
-        labelsAssem.appendChild(pill);
-      });
-
-      // --- Grade 1..2000 mapeando contemplações
-      let plotados = 0;
-      contemplacoes.forEach(item=>{
-        const raw = String(item.Cota||'').trim();
-        // "0199-00" -> 199
-        let numeroCota = NaN;
-        if(raw.includes('-')) numeroCota = parseInt(raw.split('-')[0], 10);
-        else numeroCota = parseInt(raw, 10);
-
-        if(!isNaN(numeroCota) && numeroCota>=1 && numeroCota<=totalCelulas){
-          const cell = document.getElementById('cell-'+numeroCota);
-          if(cell){
-            cell.textContent = raw || numeroCota;
-            if((item.Tipo||'')==='Sorteio') cell.classList.add('sorteio');
-            else if((item.Tipo||'')==='Lance') cell.classList.add('lance');
-            plotados++;
-          }
-        }
-      });
-
-      pillTotal.textContent = `Contemplações plotadas: ${plotados}`;
-
-      // (Opcional) usar LancesLivres futuramente para análises específicas de taxa/parcela
-      // console.log('LancesLivres exemplos:', lancesLivres.slice(0,5));
-    })
-    .catch(err=>{
-      console.error(err);
-      alert('Erro ao carregar dados. Confira os nomes dos JSONs e recarregue a página.');
+    contemplacoes.forEach(item => {
+      const tipo = String(item.Tipo||'').trim();
+      if (tipoCounts.hasOwnProperty(tipo)) tipoCounts[tipo]++;
+      const parc = parseInt(item.Parc || item['Parc.'] || item['Parcela'] || '0', 10);
+      if (!isNaN(parc) && parc>0){ somaParcela += parc; contParcela++; }
     });
-  </script>
+
+    const totalCont = (tipoCounts.Lance || 0) + (tipoCounts.Sorteio || 0);
+    const pLance = pct(tipoCounts.Lance, totalCont);
+    const pSorteio = pct(tipoCounts.Sorteio, totalCont);
+
+    barLance.style.height = pLance + '%';
+    barSorteio.style.height = pSorteio + '%';
+    numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
+    numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
+    parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : '—');
+    kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
+
+    // --- Por assembleia
+    const byAssem = {};
+    contemplacoes.forEach(i=>{
+      const a = String(i.Assembleia||'').trim();
+      if(!a) return;
+      byAssem[a] = (byAssem[a]||0)+1;
+    });
+    const assemEntries = Object.entries(byAssem).sort((a,b)=> Number(a[0])-Number(b[0]) );
+    const maxAssem = assemEntries.reduce((m, [,v])=> Math.max(m,v), 0);
+
+    barsAssem.innerHTML = '';
+    labelsAssem.innerHTML = '';
+    assemEntries.forEach(([asm, qty])=>{
+      const wrap = document.createElement('div');
+      wrap.style.flex='1'; wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.alignItems='center';
+      const bar = document.createElement('div'); bar.className='bar';
+      const span = document.createElement('span'); span.style.height = (maxAssem>0? Math.round((qty/maxAssem)*100):0) + '%';
+      bar.appendChild(span);
+      const lbl = document.createElement('div'); lbl.className='bar-label'; lbl.textContent = `#${asm}`;
+      const num = document.createElement('div'); num.className='bar-num'; num.textContent = qty;
+      wrap.appendChild(bar); wrap.appendChild(lbl); wrap.appendChild(num);
+      barsAssem.appendChild(wrap);
+
+      const pill = document.createElement('span');
+      pill.className='pill'; pill.textContent = `Assembleia ${asm}: ${qty}`;
+      labelsAssem.appendChild(pill);
+    });
+
+    // --- Grade 1..2000 mapeando contemplações
+    let plotados = 0;
+    contemplacoes.forEach(item=>{
+      const raw = String(item.Cota||'').trim();
+      let numeroCota = raw.includes('-') ? parseInt(raw.split('-')[0],10) : parseInt(raw,10);
+      if(!isNaN(numeroCota) && numeroCota>=1 && numeroCota<=totalCelulas){
+        const cell = document.getElementById('cell-'+numeroCota);
+        if(cell){
+          cell.textContent = raw || numeroCota;
+          const tipo = String(item.Tipo||'');
+          if(tipo==='Sorteio') cell.classList.add('sorteio');
+          else if(tipo==='Lance') cell.classList.add('lance');
+          plotados++;
+        }
+      }
+    });
+    pillTotal.textContent = `Contemplações plotadas: ${plotados}`;
+  })
+  .catch(err=>{
+    console.error(err);
+    alert('Erro ao carregar dados. Confira os nomes/paths dos JSONs e recarregue a página.');
+  });
+</script>
 </body>
 </html>
