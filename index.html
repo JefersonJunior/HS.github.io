@@ -84,6 +84,14 @@
     .swatch-lance{background:green}
     .swatch-sorteio{background:gold}
 
+    #ll-cota-table .rowline{
+      display:grid; grid-template-columns: 80px 1fr 120px; gap:10px;
+      padding:6px 8px; border:1px solid #273246; background:#0f1622; border-radius:8px;
+    }
+    .badge{ display:inline-block; padding:2px 6px; border-radius:999px; font-size:11px; }
+    .badge-win{ background:rgba(25,169,116,.15); border:1px solid #19a974; color:#c2f3e2 }
+    .badge-pre{ background:#1a2330; border:1px solid #273246; color:#b9cee6 }
+    .svgblk{ width:100%; height:160px; }
 
     @media (max-width:1100px){
       .cards{grid-template-columns:repeat(2,minmax(160px,1fr))}
@@ -154,6 +162,37 @@
         <div class="k-title">Contemplações por Assembleia</div>
         <div class="bars" id="bars-assem" aria-label="Barras por assembleia"></div>
         <div class="list" id="labels-assem"></div>
+      </div>
+    </section>
+    <section class="card">
+      <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap; justify-content:space-between">
+        <div>
+          <div class="k-title">Lances Livres até a Contemplação</div>
+          <div class="sub">Analise por cota (timeline) e resumo por assembleia</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <label style="font-size:12px; color:#8aa0b6">Cota</label>
+          <input id="ll-cota-input" placeholder="ex.: 0074-00 ou 74" style="background:#0c0f13;color:#e8eef6;border:1px solid #273246;border-radius:8px;padding:6px 10px;outline:none">
+          <button id="ll-cota-btn" style="background:#1e293b;color:#e8eef6;border:1px solid #304156;border-radius:8px;padding:6px 10px;cursor:pointer">Analisar</button>
+        </div>
+      </div>
+    
+      <div class="row" style="margin-top:10px">
+        <div id="ll-cota-panel" class="card" style="min-height:220px">
+          <div class="k-title">Timeline da Cota</div>
+          <div id="ll-cota-metrics" class="sub" style="margin-top:6px">—</div>
+          <div id="ll-cota-chart" style="margin-top:10px"></div>
+          <div id="ll-cota-table" class="list" style="margin-top:10px"></div>
+        </div>
+    
+        <div class="card" style="min-height:220px">
+          <div class="k-title">Resumo por Assembleia (grupo)</div>
+          <div id="ll-assem-chart" style="margin-top:10px"></div>
+          <div id="ll-assem-legend" class="legend" style="margin-top:8px">
+            <span class="dot" style="background:#4b89ff"></span> Lances
+            <span class="dot dot-green"></span> Contemplações por Lance
+          </div>
+        </div>
       </div>
     </section>
 
@@ -234,6 +273,193 @@
     const cell1603 = document.getElementById('cell-1603');
     if (cell1603) cell1603.style.border = '2px solid #2c7df5';
   }
+
+    const normalizeCotaKey = s => {
+      if(!s) return '';
+      const raw = String(s).trim();
+      const num = raw.includes('-') ? raw.split('-')[0] : raw;
+      const n = parseInt(num, 10);
+      return isNaN(n) ? '' : String(n); // chave = número puro ("74")
+    };
+    const toPct = s => {
+      if(s == null) return NaN;
+      // aceita "35,5", "35.5", "35"
+      const v = parseFloat(String(s).replace(',', '.'));
+      return isNaN(v) ? NaN : v;
+    };
+    
+    // ---------- índices ----------
+    const byCota = {};           // cotaKey -> { contemplacao: {asm,tipo}, lances: [{asm,valor}] }
+    const byAssem = {};          // asm -> { lances: count, contLance: count }
+    
+    contemplacoes.forEach(c => {
+      const key = normalizeCotaKey(c.Cota);
+      if(!key) return;
+      const asm = parseInt(c.Assembleia || c['Assem.'] || c['Asm'] || 0, 10) || 0;
+      byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
+      byCota[key].contemplacao = { asm, tipo: (c.Tipo||'').trim() };
+    });
+    
+    lancesLivres.forEach(l => {
+      const key = normalizeCotaKey(l.Cota);
+      if(!key) return;
+      const asm = parseInt(l.Assembleia || l['Assem.'] || l['Asm'] || 0, 10) || 0;
+      // campo de lance pode variar de nome
+      const v = toPct(l.Lance || l['Lance %'] || l['%'] || l['Lance(%)'] || l['Lance % (percentual)']);
+      if(isNaN(v)) return;
+      byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
+      byCota[key].lances.push({ asm, valor:v });
+    
+      byAssem[asm] = byAssem[asm] || { lances:0, contLance:0 };
+      byAssem[asm].lances++;
+    });
+    
+    // contabiliza contemplações por LANCE por assembleia
+    contemplacoes.forEach(c => {
+      const asm = parseInt(c.Assembleia || 0, 10) || 0;
+      if((c.Tipo||'').trim()==='Lance'){
+        byAssem[asm] = byAssem[asm] || { lances:0, contLance:0 };
+        byAssem[asm].contLance++;
+      }
+    });
+    
+    // ---------- render por cota ----------
+    const elIn = document.getElementById('ll-cota-input');
+    const elBtn = document.getElementById('ll-cota-btn');
+    const elMetrics = document.getElementById('ll-cota-metrics');
+    const elChart = document.getElementById('ll-cota-chart');
+    const elTable = document.getElementById('ll-cota-table');
+    
+    function renderCota(cotaInput){
+      const key = normalizeCotaKey(cotaInput);
+      const data = byCota[key];
+      elTable.innerHTML = '';
+      elChart.innerHTML = '';
+      if(!data){
+        elMetrics.textContent = 'Cota não encontrada nos dados de lances/contemplação.';
+        return;
+      }
+    
+      const asmCont = data.contemplacao?.asm ?? null;
+      const tipoCont = data.contemplacao?.tipo ?? '—';
+    
+      // filtra lances até a contemplação (se houver)
+      const lancesOrdenados = data.lances
+        .sort((a,b)=>a.asm-b.asm)
+        .filter(x => asmCont ? x.asm <= asmCont : true);
+    
+      const n = lancesOrdenados.length;
+      const mai = n ? Math.max(...lancesOrdenados.map(x=>x.valor)) : null;
+      const ult = n ? lancesOrdenados[lancesOrdenados.length-1].valor : null;
+    
+      elMetrics.textContent =
+        `Contemplação: ${asmCont ?? '—'} (${tipoCont}) · ` +
+        `Lances até a contemplação: ${n} · ` +
+        `Maior: ${mai != null ? (mai+'%') : '—'} · ` +
+        `Último: ${ult != null ? (ult+'%') : '—'}`;
+    
+      // tabela
+      lancesOrdenados.forEach(x=>{
+        const row = document.createElement('div');
+        row.className='rowline';
+        const badge = (asmCont && x.asm===asmCont && tipoCont==='Lance')
+          ? '<span class="badge badge-win">Contemplado por Lance</span>'
+          : '<span class="badge badge-pre">Pré-contemplação</span>';
+        row.innerHTML = `
+          <div>#${x.asm}</div>
+          <div>Lance livre</div>
+          <div style="text-align:right">${x.valor}%</div>
+        `;
+        if(asmCont && x.asm===asmCont){
+          row.innerHTML += `<div style="grid-column: 1 / -1">${badge}</div>`;
+        }
+        elTable.appendChild(row);
+      });
+    
+      // gráfico (linha simples SVG: eixo X=assembleia, Y=lance%)
+      if(n){
+        const W=600, H=160, pad=24;
+        const xs = lancesOrdenados.map(x=>x.asm);
+        const ys = lancesOrdenados.map(x=>x.valor);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = 0, maxY = Math.max(50, Math.ceil(Math.max(...ys)/5)*5); // teto simpático
+    
+        const sx = v => pad + ( (v-minX)/(maxX-minX||1) ) * (W-2*pad);
+        const sy = v => H-pad - ( (v-minY)/(maxY-minY||1) ) * (H-2*pad);
+        const points = lancesOrdenados.map(p => `${sx(p.asm)},${sy(p.valor)}`).join(' ');
+    
+        elChart.innerHTML = `
+          <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Linha de lances por assembleia">
+            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+            <!-- grid Y -->
+            ${[0,25,50,75,100].map(g=>`
+              <line x1="${pad}" y1="${sy(g)}" x2="${W-pad}" y2="${sy(g)}" stroke="#223044" stroke-width="1" opacity="0.4"/>
+              <text x="${W-pad+4}" y="${sy(g)+4}" fill="#8aa0b6" font-size="10">${g}%</text>
+            `).join('')}
+            <!-- linha -->
+            <polyline fill="none" stroke="#4b89ff" stroke-width="2" points="${points}"/>
+            <!-- pontos -->
+            ${lancesOrdenados.map(p=>`
+              <circle cx="${sx(p.asm)}" cy="${sy(p.valor)}" r="3" fill="#4b89ff"/>
+            `).join('')}
+            <!-- marcador da contemplação -->
+            ${asmCont ? `
+              <line x1="${sx(asmCont)}" y1="${pad}" x2="${sx(asmCont)}" y2="${H-pad}" stroke="gold" stroke-width="2" />
+              <text x="${sx(asmCont)+4}" y="${pad+10}" fill="gold" font-size="10">Asm ${asmCont}</text>
+            ` : '' }
+          </svg>
+        `;
+      }
+    }
+    
+    elBtn.addEventListener('click', ()=> renderCota(elIn.value));
+    elIn.addEventListener('keydown', e=>{ if(e.key==='Enter') renderCota(elIn.value); });
+    
+    // se existir uma cota marcada visualmente (ex.: 0074-00), autofill:
+    (() => {
+      const pre = document.querySelector('.cell.lance, .cell.sorteio');
+      if(pre){
+        elIn.value = pre.textContent.trim();
+      }
+    })();
+    
+    // ---------- resumo por assembleia (grupo) ----------
+    (function renderResumoAssembleia(){
+      const entries = Object.entries(byAssem).sort((a,b)=> Number(a[0])-Number(b[0]));
+      if(!entries.length) return;
+    
+      const W=700, H=160, pad=28;
+      const maxLances = Math.max(...entries.map(([,v])=>v.lances));
+      const maxCont   = Math.max(...entries.map(([,v])=>v.contLance));
+      const maxY = Math.max(5, maxLances, maxCont);
+    
+      const bw = (W-2*pad)/entries.length - 4; // barra fina
+      const x = idx => pad + idx*((W-2*pad)/entries.length);
+      const scale = v => (v/maxY) * (H-2*pad);
+    
+      const bars = entries.map(([asm, v], i) => {
+        const h1 = scale(v.lances);
+        const h2 = scale(v.contLance);
+        return `
+          <!-- lances -->
+          <rect x="${x(i)}" y="${H-pad-h1}" width="${bw}" height="${h1}" fill="#4b89ff"/>
+          <!-- contemplações por lance -->
+          <rect x="${x(i)+bw+2}" y="${H-pad-h2}" width="${bw}" height="${h2}" fill="green"/>
+        `;
+      }).join('');
+    
+      const axis = `
+        <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#223044"/>
+      `;
+    
+      document.getElementById('ll-assem-chart').innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Lances e contemplações por assembleia">
+          <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+          ${axis}
+          ${bars}
+        </svg>
+      `;
+    })();
 
   // ===== Carregar dados com os NOVOS nomes =====
   Promise.all([
