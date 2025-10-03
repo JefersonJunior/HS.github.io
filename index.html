@@ -30,7 +30,6 @@
     .k-value{font-size:22px; font-weight:700; margin-top:4px}
     .k-foot{font-size:11px; color:var(--muted); margin-top:6px}
 
-    /* gráfico de barras simples (css only) */
     .bars{display:flex; gap:8px; align-items:flex-end; height:120px; padding:10px 6px}
     .bar{flex:1; background:#253041; border-radius:6px 6px 0 0; position:relative}
     .bar > span{
@@ -43,7 +42,6 @@
     .two-col{display:grid; grid-template-columns: 1.3fr .7fr; gap:12px}
     .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 
-    /* Grade 1..2000 */
     .grid{
       display:grid; grid-template-columns: repeat(10, 1fr);
       gap: var(--grid-gap);
@@ -134,16 +132,14 @@
       <!-- Mix Lance x Sorteio + parcela média -->
       <div class="card">
         <div class="k-title">Mix de Contemplações</div>
-      
-        <!-- Novo: rosca SVG -->
+
         <div id="mix-vis" class="donut-wrap" aria-label="Rosca Lance x Sorteio"></div>
-      
-        <!-- (opcional) barras antigas continuam -->
+
         <div class="bars" id="bars-mix" aria-label="Gráfico de barras: Lance x Sorteio">
           <div class="bar" title="Lance"><span id="bar-lance"></span></div>
           <div class="bar" title="Sorteio"><span id="bar-sorteio"></span></div>
         </div>
-      
+
         <div class="row">
           <div>
             <div class="bar-label">Lance</div>
@@ -164,6 +160,8 @@
         <div class="list" id="labels-assem"></div>
       </div>
     </section>
+
+    <!-- Lances Livres -->
     <section class="card">
       <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap; justify-content:space-between">
         <div>
@@ -176,7 +174,7 @@
           <button id="ll-cota-btn" style="background:#1e293b;color:#e8eef6;border:1px solid #304156;border-radius:8px;padding:6px 10px;cursor:pointer">Analisar</button>
         </div>
       </div>
-    
+
       <div class="row" style="margin-top:10px">
         <div id="ll-cota-panel" class="card" style="min-height:220px">
           <div class="k-title">Timeline da Cota</div>
@@ -184,7 +182,7 @@
           <div id="ll-cota-chart" style="margin-top:10px"></div>
           <div id="ll-cota-table" class="list" style="margin-top:10px"></div>
         </div>
-    
+
         <div class="card" style="min-height:220px">
           <div class="k-title">Resumo por Assembleia (grupo)</div>
           <div id="ll-assem-chart" style="margin-top:10px"></div>
@@ -209,403 +207,365 @@
       <div class="grid" id="grid"></div>
     </section>
 
-    <!-- Rodapé/Fontes -->
     <section class="card">
       <div class="k-title">Fontes</div>
-      <div class="sub">
-        Demonstrativo financeiro do grupo, contemplações e lances livres extraídos dos arquivos JSON anexados.
-      </div>
+      <div class="sub">Demonstrativo financeiro do grupo, contemplações e lances livres extraídos dos arquivos JSON anexados.</div>
     </section>
   </div>
 
   <script>
-  // ===== Utils =====
-  const BRL = v => (isNaN(v)? '—' : v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'}));
-  const pct = (a,b) => b>0 ? Math.round((a/b)*100) : 0;
-  const toNumberBR = s => {
-    if (s == null) return 0;
-    return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0;
-  };
-  // remove sequências de pontos e espaços redundantes; mantém parênteses e datas
-  const normalizeLabel = s => String(s||'')
-    .replace(/\.+/g, ' ')         // ... -> espaço
-    .replace(/\s{2,}/g, ' ')      // múltiplos espaços -> 1
-    .trim();
+    // ===== Utils =====
+    const BRL = v => (isNaN(v)? '—' : v.toLocaleString('pt-BR',{style:'currency', currency:'BRL'}));
+    const pct = (a,b) => b>0 ? Math.round((a/b)*100) : 0;
+    const toNumberBR = s => {
+      if (s == null) return 0;
+      return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0;
+    };
+    const normalizeLabel = s => String(s||'').replace(/\.+/g, ' ').replace(/\s{2,}/g, ' ').trim();
 
-  const safeFetchJson = async (path) => {
-    const r = await fetch(encodeURI(path));
-    if(!r.ok) throw new Error('Falha ao carregar '+path);
-    return r.json();
-  };
+    const safeFetchJson = async (path) => {
+      const r = await fetch(encodeURI(path));
+      if(!r.ok) throw new Error('Falha ao carregar '+path);
+      return r.json();
+    };
 
-  // ===== DOM refs (iguais ao seu HTML) =====
-  const kpiDispon = document.getElementById('kpi-dispon');
-  const kpiDisponRef = document.getElementById('kpi-dispon-ref');
-  const kpiColetado = document.getElementById('kpi-coletado');
-  const kpiColetadoAcc = document.getElementById('kpi-coletado-acc');
-  const kpiUtilizado = document.getElementById('kpi-utilizado');
-  const kpiUtilizadoAcc = document.getElementById('kpi-utilizado-acc');
-  const kpiSaldo = document.getElementById('kpi-saldo');
-  const kpiMix = document.getElementById('kpi-mix');
+    // ===== DOM refs =====
+    const kpiDispon = document.getElementById('kpi-dispon');
+    const kpiDisponRef = document.getElementById('kpi-dispon-ref');
+    const kpiColetado = document.getElementById('kpi-coletado');
+    const kpiColetadoAcc = document.getElementById('kpi-coletado-acc');
+    const kpiUtilizado = document.getElementById('kpi-utilizado');
+    const kpiUtilizadoAcc = document.getElementById('kpi-utilizado-acc');
+    const kpiSaldo = document.getElementById('kpi-saldo');
+    const kpiMix = document.getElementById('kpi-mix');
 
-  const barLance = document.getElementById('bar-lance');
-  const barSorteio = document.getElementById('bar-sorteio');
-  const numLance = document.getElementById('num-lance');
-  const numSorteio = document.getElementById('num-sorteio');
-  const parcelaMedia = document.getElementById('parcela-media');
+    const barLance = document.getElementById('bar-lance');
+    const barSorteio = document.getElementById('bar-sorteio');
+    const numLance = document.getElementById('num-lance');
+    const numSorteio = document.getElementById('num-sorteio');
+    const parcelaMedia = document.getElementById('parcela-media');
 
-  const barsAssem = document.getElementById('bars-assem');
-  const labelsAssem = document.getElementById('labels-assem');
+    const barsAssem = document.getElementById('bars-assem');
+    const labelsAssem = document.getElementById('labels-assem');
 
-  const grid = document.getElementById('grid');
-  const pillTotal = document.getElementById('pill-total');
+    const grid = document.getElementById('grid');
+    const pillTotal = document.getElementById('pill-total');
 
-  // ===== Grade base 1..2000 =====
-  const totalCelulas = 2000;
-  if (grid && !grid.children.length){
-    for (let i = 1; i <= totalCelulas; i++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      cell.id = 'cell-' + i;
-      cell.textContent = i;
-      grid.appendChild(cell);
+    // ===== Grade base 1..2000 =====
+    const totalCelulas = 2000;
+    if (grid && !grid.children.length){
+      for (let i = 1; i <= totalCelulas; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.id = 'cell-' + i;
+        cell.textContent = i;
+        grid.appendChild(cell);
+      }
+      const cell1603 = document.getElementById('cell-1603');
+      if (cell1603) cell1603.style.border = '2px solid #2c7df5';
     }
-    const cell1603 = document.getElementById('cell-1603');
-    if (cell1603) cell1603.style.border = '2px solid #2c7df5';
-  }
 
-    const normalizeCotaKey = s => {
-      if(!s) return '';
-      const raw = String(s).trim();
-      const num = raw.includes('-') ? raw.split('-')[0] : raw;
-      const n = parseInt(num, 10);
-      return isNaN(n) ? '' : String(n); // chave = número puro ("74")
-    };
-    const toPct = s => {
-      if(s == null) return NaN;
-      // aceita "35,5", "35.5", "35"
-      const v = parseFloat(String(s).replace(',', '.'));
-      return isNaN(v) ? NaN : v;
-    };
-    
-    // ---------- índices ----------
-    const byCota = {};           // cotaKey -> { contemplacao: {asm,tipo}, lances: [{asm,valor}] }
-    const byAssem = {};          // asm -> { lances: count, contLance: count }
-    
-    contemplacoes.forEach(c => {
-      const key = normalizeCotaKey(c.Cota);
-      if(!key) return;
-      const asm = parseInt(c.Assembleia || c['Assem.'] || c['Asm'] || 0, 10) || 0;
-      byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
-      byCota[key].contemplacao = { asm, tipo: (c.Tipo||'').trim() };
-    });
-    
-    lancesLivres.forEach(l => {
-      const key = normalizeCotaKey(l.Cota);
-      if(!key) return;
-      const asm = parseInt(l.Assembleia || l['Assem.'] || l['Asm'] || 0, 10) || 0;
-      // campo de lance pode variar de nome
-      const v = toPct(l.Lance || l['Lance %'] || l['%'] || l['Lance(%)'] || l['Lance % (percentual)']);
-      if(isNaN(v)) return;
-      byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
-      byCota[key].lances.push({ asm, valor:v });
-    
-      byAssem[asm] = byAssem[asm] || { lances:0, contLance:0 };
-      byAssem[asm].lances++;
-    });
-    
-    // contabiliza contemplações por LANCE por assembleia
-    contemplacoes.forEach(c => {
-      const asm = parseInt(c.Assembleia || 0, 10) || 0;
-      if((c.Tipo||'').trim()==='Lance'){
-        byAssem[asm] = byAssem[asm] || { lances:0, contLance:0 };
-        byAssem[asm].contLance++;
-      }
-    });
-    
-    // ---------- render por cota ----------
-    const elIn = document.getElementById('ll-cota-input');
-    const elBtn = document.getElementById('ll-cota-btn');
-    const elMetrics = document.getElementById('ll-cota-metrics');
-    const elChart = document.getElementById('ll-cota-chart');
-    const elTable = document.getElementById('ll-cota-table');
-    
-    function renderCota(cotaInput){
-      const key = normalizeCotaKey(cotaInput);
-      const data = byCota[key];
-      elTable.innerHTML = '';
-      elChart.innerHTML = '';
-      if(!data){
-        elMetrics.textContent = 'Cota não encontrada nos dados de lances/contemplação.';
-        return;
-      }
-    
-      const asmCont = data.contemplacao?.asm ?? null;
-      const tipoCont = data.contemplacao?.tipo ?? '—';
-    
-      // filtra lances até a contemplação (se houver)
-      const lancesOrdenados = data.lances
-        .sort((a,b)=>a.asm-b.asm)
-        .filter(x => asmCont ? x.asm <= asmCont : true);
-    
-      const n = lancesOrdenados.length;
-      const mai = n ? Math.max(...lancesOrdenados.map(x=>x.valor)) : null;
-      const ult = n ? lancesOrdenados[lancesOrdenados.length-1].valor : null;
-    
-      elMetrics.textContent =
-        `Contemplação: ${asmCont ?? '—'} (${tipoCont}) · ` +
-        `Lances até a contemplação: ${n} · ` +
-        `Maior: ${mai != null ? (mai+'%') : '—'} · ` +
-        `Último: ${ult != null ? (ult+'%') : '—'}`;
-    
-      // tabela
-      lancesOrdenados.forEach(x=>{
-        const row = document.createElement('div');
-        row.className='rowline';
-        const badge = (asmCont && x.asm===asmCont && tipoCont==='Lance')
-          ? '<span class="badge badge-win">Contemplado por Lance</span>'
-          : '<span class="badge badge-pre">Pré-contemplação</span>';
-        row.innerHTML = `
-          <div>#${x.asm}</div>
-          <div>Lance livre</div>
-          <div style="text-align:right">${x.valor}%</div>
-        `;
-        if(asmCont && x.asm===asmCont){
-          row.innerHTML += `<div style="grid-column: 1 / -1">${badge}</div>`;
-        }
-        elTable.appendChild(row);
+    // ===== Carregar dados =====
+    Promise.all([
+      safeFetchJson('DemonstrativoGrupo.json'),
+      safeFetchJson('Contemplacoes.json'),
+      safeFetchJson('LancesLivres.json'),
+    ])
+    .then(([demonstrativo, contemplacoes, lancesLivres]) => {
+      // ---------- FINANCEIRO ----------
+      const demoNorm = demonstrativo.map(x => ({ ...x, _label: normalizeLabel(x['Discriminação']) }));
+
+      const dispRows = demoNorm.filter(r => /Disponibilidades \(Em:\s*\d{2}\/\d{2}\/\d{4}\)/i.test(r._label));
+      const lastDisp = dispRows[dispRows.length-1];
+      const dispLabel = lastDisp? lastDisp._label : '';
+      const dispValor = lastDisp? toNumberBR(lastDisp['Saldo do Período']) : 0;
+
+      const rowColet = demoNorm.find(r => /^\(\+\)?\s*Recursos\s*Coletados/i.test(r._label));
+      const coletPeriodo = toNumberBR(rowColet?.['Saldo do Período']);
+      const coletAcc = toNumberBR(rowColet?.['Saldo Acumulado']);
+
+      const rowUtil = demoNorm.find(r => /^\(-\)\s*Recursos\s*Utilizados/i.test(r._label));
+      const utilPeriodo = toNumberBR(rowUtil?.['Saldo do Período']);
+      const utilAcc = toNumberBR(rowUtil?.['Saldo Acumulado']);
+
+      kpiDispon.textContent = BRL(dispValor);
+      kpiDisponRef.textContent = dispLabel || '—';
+      kpiColetado.textContent = BRL(coletPeriodo);
+      kpiColetadoAcc.textContent = 'Acumulado: ' + BRL(coletAcc);
+      kpiUtilizado.textContent = BRL(utilPeriodo);
+      kpiUtilizadoAcc.textContent = 'Acumulado: ' + BRL(utilAcc);
+      kpiSaldo.textContent = BRL(coletPeriodo - utilPeriodo);
+
+      // ---------- CONTEMPLAÇÕES ----------
+      const tipoCounts = { Lance:0, Sorteio:0 };
+      let somaParcela = 0, contParcela = 0;
+
+      contemplacoes.forEach(item => {
+        const tipo = String(item.Tipo||'').trim();
+        if (tipoCounts.hasOwnProperty(tipo)) tipoCounts[tipo]++;
+        const parc = parseInt(item.Parc || item['Parc.'] || item['Parcela'] || '0', 10);
+        if (!isNaN(parc) && parc>0){ somaParcela += parc; contParcela++; }
       });
-    
-      // gráfico (linha simples SVG: eixo X=assembleia, Y=lance%)
-      if(n){
-        const W=600, H=160, pad=24;
-        const xs = lancesOrdenados.map(x=>x.asm);
-        const ys = lancesOrdenados.map(x=>x.valor);
-        const minX = Math.min(...xs), maxX = Math.max(...xs);
-        const minY = 0, maxY = Math.max(50, Math.ceil(Math.max(...ys)/5)*5); // teto simpático
-    
-        const sx = v => pad + ( (v-minX)/(maxX-minX||1) ) * (W-2*pad);
-        const sy = v => H-pad - ( (v-minY)/(maxY-minY||1) ) * (H-2*pad);
-        const points = lancesOrdenados.map(p => `${sx(p.asm)},${sy(p.valor)}`).join(' ');
-    
-        elChart.innerHTML = `
-          <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Linha de lances por assembleia">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
-            <!-- grid Y -->
-            ${[0,25,50,75,100].map(g=>`
-              <line x1="${pad}" y1="${sy(g)}" x2="${W-pad}" y2="${sy(g)}" stroke="#223044" stroke-width="1" opacity="0.4"/>
-              <text x="${W-pad+4}" y="${sy(g)+4}" fill="#8aa0b6" font-size="10">${g}%</text>
-            `).join('')}
-            <!-- linha -->
-            <polyline fill="none" stroke="#4b89ff" stroke-width="2" points="${points}"/>
-            <!-- pontos -->
-            ${lancesOrdenados.map(p=>`
-              <circle cx="${sx(p.asm)}" cy="${sy(p.valor)}" r="3" fill="#4b89ff"/>
-            `).join('')}
-            <!-- marcador da contemplação -->
-            ${asmCont ? `
-              <line x1="${sx(asmCont)}" y1="${pad}" x2="${sx(asmCont)}" y2="${H-pad}" stroke="gold" stroke-width="2" />
-              <text x="${sx(asmCont)+4}" y="${pad+10}" fill="gold" font-size="10">Asm ${asmCont}</text>
-            ` : '' }
-          </svg>
-        `;
-      }
-    }
-    
-    elBtn.addEventListener('click', ()=> renderCota(elIn.value));
-    elIn.addEventListener('keydown', e=>{ if(e.key==='Enter') renderCota(elIn.value); });
-    
-    // se existir uma cota marcada visualmente (ex.: 0074-00), autofill:
-    (() => {
-      const pre = document.querySelector('.cell.lance, .cell.sorteio');
-      if(pre){
-        elIn.value = pre.textContent.trim();
-      }
-    })();
-    
-    // ---------- resumo por assembleia (grupo) ----------
-    (function renderResumoAssembleia(){
-      const entries = Object.entries(byAssem).sort((a,b)=> Number(a[0])-Number(b[0]));
-      if(!entries.length) return;
-    
-      const W=700, H=160, pad=28;
-      const maxLances = Math.max(...entries.map(([,v])=>v.lances));
-      const maxCont   = Math.max(...entries.map(([,v])=>v.contLance));
-      const maxY = Math.max(5, maxLances, maxCont);
-    
-      const bw = (W-2*pad)/entries.length - 4; // barra fina
-      const x = idx => pad + idx*((W-2*pad)/entries.length);
-      const scale = v => (v/maxY) * (H-2*pad);
-    
-      const bars = entries.map(([asm, v], i) => {
-        const h1 = scale(v.lances);
-        const h2 = scale(v.contLance);
-        return `
-          <!-- lances -->
-          <rect x="${x(i)}" y="${H-pad-h1}" width="${bw}" height="${h1}" fill="#4b89ff"/>
-          <!-- contemplações por lance -->
-          <rect x="${x(i)+bw+2}" y="${H-pad-h2}" width="${bw}" height="${h2}" fill="green"/>
-        `;
-      }).join('');
-    
-      const axis = `
-        <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#223044"/>
-      `;
-    
-      document.getElementById('ll-assem-chart').innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Lances e contemplações por assembleia">
-          <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
-          ${axis}
-          ${bars}
-        </svg>
-      `;
-    })();
 
-  // ===== Carregar dados com os NOVOS nomes =====
-  Promise.all([
-    safeFetchJson('DemonstrativoGrupo.json'),
-    safeFetchJson('Contemplacoes.json'),
-    safeFetchJson('LancesLivres.json'),
-  ])
-  .then(([demonstrativo, contemplacoes, lancesLivres]) => {
-    // --- FINANCEIRO
-    // normaliza labels uma vez para facilitar
-    const demoNorm = demonstrativo.map(x => ({
-      ...x,
-      _label: normalizeLabel(x['Discriminação'])
-    }));
+      const totalCont = (tipoCounts.Lance || 0) + (tipoCounts.Sorteio || 0);
+      const pLance = pct(tipoCounts.Lance, totalCont);
+      const pSorteio = pct(tipoCounts.Sorteio, totalCont);
 
-    // Disponibilidades (pega a ÚLTIMA ocorrência)
-    const dispRows = demoNorm.filter(r => /Disponibilidades \(Em:\s*\d{2}\/\d{2}\/\d{4}\)/i.test(r._label));
-    const lastDisp = dispRows[dispRows.length-1];
-    const dispLabel = lastDisp? lastDisp._label : '';
-    const dispValor = lastDisp? toNumberBR(lastDisp['Saldo do Período']) : 0;
+      barLance.style.height = pLance + '%';
+      barSorteio.style.height = pSorteio + '%';
+      numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
+      numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
+      parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : '—';
+      kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
 
-    // (+) Recursos Coletados
-    const rowColet = demoNorm.find(r => /^\(\+\)?\s*Recursos\s*Coletados/i.test(r._label));
-    const coletPeriodo = toNumberBR(rowColet?.['Saldo do Período']);
-    const coletAcc = toNumberBR(rowColet?.['Saldo Acumulado']);
+      renderDonutMix(pLance, pSorteio);
 
-    // (-) Recursos Utilizados
-    const rowUtil = demoNorm.find(r => /^\(-\)\s*Recursos\s*Utilizados/i.test(r._label));
-    const utilPeriodo = toNumberBR(rowUtil?.['Saldo do Período']);
-    const utilAcc = toNumberBR(rowUtil?.['Saldo Acumulado']);
+      // --- Contemplações por assembleia (card da direita)
+      const contPorAssem = {};
+      contemplacoes.forEach(i=>{
+        const a = String(i.Assembleia||'').trim();
+        if(!a) return;
+        contPorAssem[a] = (contPorAssem[a]||0)+1;
+      });
+      const assemEntries = Object.entries(contPorAssem).sort((a,b)=> Number(a[0])-Number(b[0]) );
+      const maxAssem = assemEntries.reduce((m, [,v])=> Math.max(m,v), 0);
 
-    kpiDispon.textContent = BRL(dispValor);
-    kpiDisponRef.textContent = dispLabel || '—';
+      barsAssem.innerHTML = '';
+      labelsAssem.innerHTML = '';
+      assemEntries.forEach(([asm, qty])=>{
+        const wrap = document.createElement('div');
+        wrap.style.flex='1'; wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.alignItems='center';
+        const bar = document.createElement('div'); bar.className='bar';
+        const span = document.createElement('span'); span.style.height = (maxAssem>0? Math.round((qty/maxAssem)*100):0) + '%';
+        bar.appendChild(span);
+        const lbl = document.createElement('div'); lbl.className='bar-label'; lbl.textContent = `#${asm}`;
+        const num = document.createElement('div'); num.className='bar-num'; num.textContent = qty;
+        wrap.appendChild(bar); wrap.appendChild(lbl); wrap.appendChild(num);
+        barsAssem.appendChild(wrap);
 
-    kpiColetado.textContent = BRL(coletPeriodo);
-    kpiColetadoAcc.textContent = 'Acumulado: ' + BRL(coletAcc);
+        const pill = document.createElement('span');
+        pill.className='pill'; pill.textContent = `Assembleia ${asm}: ${qty}`;
+        labelsAssem.appendChild(pill);
+      });
 
-    kpiUtilizado.textContent = BRL(utilPeriodo);
-    kpiUtilizadoAcc.textContent = 'Acumulado: ' + BRL(utilAcc);
+      // ---------- LANCES LIVRES (índices e telas) ----------
+      const normalizeCotaKey = s => {
+        if(!s) return '';
+        const raw = String(s).trim();
+        const num = raw.includes('-') ? raw.split('-')[0] : raw;
+        const n = parseInt(num, 10);
+        return isNaN(n) ? '' : String(n);
+      };
+      const toPct = s => {
+        if(s == null) return NaN;
+        const v = parseFloat(String(s).replace(',', '.'));
+        return isNaN(v) ? NaN : v;
+      };
 
-    const saldoMes = coletPeriodo - utilPeriodo;
-    kpiSaldo.textContent = BRL(saldoMes);
+      const byCota = {}; // cota -> { contemplacao:{asm,tipo}, lances:[{asm,valor}] }
+      const byAssemLL = {}; // asm -> { lances, contLance }
 
-    // --- CONTEMPLAÇÕES (Lance x Sorteio, parcela média, por assembleia)
-    const tipoCounts = { Lance:0, Sorteio:0 };
-    let somaParcela = 0, contParcela = 0;
+      contemplacoes.forEach(c => {
+        const key = normalizeCotaKey(c.Cota);
+        if(!key) return;
+        const asm = parseInt(c.Assembleia || c['Assem.'] || c['Asm'] || 0, 10) || 0;
+        byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
+        byCota[key].contemplacao = { asm, tipo: (c.Tipo||'').trim() };
+      });
 
-    contemplacoes.forEach(item => {
-      const tipo = String(item.Tipo||'').trim();
-      if (tipoCounts.hasOwnProperty(tipo)) tipoCounts[tipo]++;
-      const parc = parseInt(item.Parc || item['Parc.'] || item['Parcela'] || '0', 10);
-      if (!isNaN(parc) && parc>0){ somaParcela += parc; contParcela++; }
-    });
+      lancesLivres.forEach(l => {
+        const key = normalizeCotaKey(l.Cota);
+        if(!key) return;
+        const asm = parseInt(l.Assembleia || l['Assem.'] || l['Asm'] || 0, 10) || 0;
+        const v = toPct(l.Lance || l['Lance %'] || l['%'] || l['Lance(%)'] || l['Lance % (percentual)']);
+        if(isNaN(v)) return;
+        byCota[key] = byCota[key] || { contemplacao:null, lances:[] };
+        byCota[key].lances.push({ asm, valor:v });
 
-    const totalCont = (tipoCounts.Lance || 0) + (tipoCounts.Sorteio || 0);
-    const pLance = pct(tipoCounts.Lance, totalCont);
-    const pSorteio = pct(tipoCounts.Sorteio, totalCont);
+        byAssemLL[asm] = byAssemLL[asm] || { lances:0, contLance:0 };
+        byAssemLL[asm].lances++;
+      });
 
-    barLance.style.height = pLance + '%';
-    barSorteio.style.height = pSorteio + '%';
-    numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
-    numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
-    renderDonutMix(pLance, pSorteio);
-    parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : '—');
-    kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
+      contemplacoes.forEach(c => {
+        const asm = parseInt(c.Assembleia || 0, 10) || 0;
+        if((c.Tipo||'').trim()==='Lance'){
+          byAssemLL[asm] = byAssemLL[asm] || { lances:0, contLance:0 };
+          byAssemLL[asm].contLance++;
+        }
+      });
 
-    // --- Por assembleia
-    const byAssem = {};
-    contemplacoes.forEach(i=>{
-      const a = String(i.Assembleia||'').trim();
-      if(!a) return;
-      byAssem[a] = (byAssem[a]||0)+1;
-    });
-    const assemEntries = Object.entries(byAssem).sort((a,b)=> Number(a[0])-Number(b[0]) );
-    const maxAssem = assemEntries.reduce((m, [,v])=> Math.max(m,v), 0);
+      // --- eventos UI lances livres
+      const elIn = document.getElementById('ll-cota-input');
+      const elBtn = document.getElementById('ll-cota-btn');
+      const elMetrics = document.getElementById('ll-cota-metrics');
+      const elChart = document.getElementById('ll-cota-chart');
+      const elTable = document.getElementById('ll-cota-table');
 
-    barsAssem.innerHTML = '';
-    labelsAssem.innerHTML = '';
-    assemEntries.forEach(([asm, qty])=>{
-      const wrap = document.createElement('div');
-      wrap.style.flex='1'; wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.alignItems='center';
-      const bar = document.createElement('div'); bar.className='bar';
-      const span = document.createElement('span'); span.style.height = (maxAssem>0? Math.round((qty/maxAssem)*100):0) + '%';
-      bar.appendChild(span);
-      const lbl = document.createElement('div'); lbl.className='bar-label'; lbl.textContent = `#${asm}`;
-      const num = document.createElement('div'); num.className='bar-num'; num.textContent = qty;
-      wrap.appendChild(bar); wrap.appendChild(lbl); wrap.appendChild(num);
-      barsAssem.appendChild(wrap);
+      function renderCota(cotaInput){
+        const key = normalizeCotaKey(cotaInput);
+        const data = byCota[key];
+        elTable.innerHTML = '';
+        elChart.innerHTML = '';
+        if(!data){
+          elMetrics.textContent = 'Cota não encontrada nos dados de lances/contemplação.';
+          return;
+        }
 
-      const pill = document.createElement('span');
-      pill.className='pill'; pill.textContent = `Assembleia ${asm}: ${qty}`;
-      labelsAssem.appendChild(pill);
-    });
+        const asmCont = data.contemplacao?.asm ?? null;
+        const tipoCont = data.contemplacao?.tipo ?? '—';
 
-    function renderDonutMix(pLance, pSorteio){
-      const el = document.getElementById('mix-vis');
-      if(!el) return;
-    
-      const size = 220, stroke = 28;
-      const r = (size - stroke) / 2;
-      const C = 2 * Math.PI * r;
-      const lanceLen   = (pLance/100)   * C;
-      const sorteioLen = (pSorteio/100) * C;
-    
-      // SVG da rosca com 2 arcos (Lance e Sorteio)
-      el.innerHTML = `
-        <div>
-          <svg class="donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="Lance ${pLance}%, Sorteio ${pSorteio}%">
-            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#253041" stroke-width="${stroke}"></circle>
-            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="green" stroke-width="${stroke}"
-              stroke-dasharray="${lanceLen} ${C-lanceLen}" stroke-linecap="butt"></circle>
-            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="gold" stroke-width="${stroke}"
-              stroke-dasharray="${sorteioLen} ${C-sorteioLen}" stroke-dashoffset="${-lanceLen}" stroke-linecap="butt"></circle>
-    
-            <text x="${size/2}" y="${size/2}">${pLance}% / ${pSorteio}%</text>
-          </svg>
-          <div class="donut-legend">
-            <div class="legend-item"><span class="legend-swatch swatch-lance"></span>Lance</div>
-            <div class="legend-item"><span class="legend-swatch swatch-sorteio"></span>Sorteio</div>
-          </div>
-        </div>
-      `;
-    }
+        const lancesOrdenados = data.lances.sort((a,b)=>a.asm-b.asm).filter(x => asmCont ? x.asm <= asmCont : true);
 
-    // --- Grade 1..2000 mapeando contemplações
-    let plotados = 0;
-    contemplacoes.forEach(item=>{
-      const raw = String(item.Cota||'').trim();
-      let numeroCota = raw.includes('-') ? parseInt(raw.split('-')[0],10) : parseInt(raw,10);
-      if(!isNaN(numeroCota) && numeroCota>=1 && numeroCota<=totalCelulas){
-        const cell = document.getElementById('cell-'+numeroCota);
-        if(cell){
-          cell.textContent = raw || numeroCota;
-          const tipo = String(item.Tipo||'');
-          if(tipo==='Sorteio') cell.classList.add('sorteio');
-          else if(tipo==='Lance') cell.classList.add('lance');
-          plotados++;
+        const n = lancesOrdenados.length;
+        const mai = n ? Math.max(...lancesOrdenados.map(x=>x.valor)) : null;
+        const ult = n ? lancesOrdenados[lancesOrdenados.length-1].valor : null;
+
+        elMetrics.textContent =
+          `Contemplação: ${asmCont ?? '—'} (${tipoCont}) · ` +
+          `Lances até a contemplação: ${n} · ` +
+          `Maior: ${mai != null ? (mai+'%') : '—'} · ` +
+          `Último: ${ult != null ? (ult+'%') : '—'}`;
+
+        lancesOrdenados.forEach(x=>{
+          const row = document.createElement('div');
+          row.className='rowline';
+          const badge = (asmCont && x.asm===asmCont && tipoCont==='Lance')
+            ? '<span class="badge badge-win">Contemplado por Lance</span>'
+            : '<span class="badge badge-pre">Pré-contemplação</span>';
+          row.innerHTML = `
+            <div>#${x.asm}</div>
+            <div>Lance livre</div>
+            <div style="text-align:right">${x.valor}%</div>
+          `;
+          if(asmCont && x.asm===asmCont){
+            row.innerHTML += `<div style="grid-column: 1 / -1">${badge}</div>`;
+          }
+          elTable.appendChild(row);
+        });
+
+        if(n){
+          const W=600, H=160, pad=24;
+          const xs = lancesOrdenados.map(x=>x.asm);
+          const ys = lancesOrdenados.map(x=>x.valor);
+          const minX = Math.min(...xs), maxX = Math.max(...xs);
+          const minY = 0, maxY = Math.max(50, Math.ceil(Math.max(...ys)/5)*5);
+
+          const sx = v => pad + ( (v-minX)/(maxX-minX||1) ) * (W-2*pad);
+          const sy = v => H-pad - ( (v-minY)/(maxY-minY||1) ) * (H-2*pad);
+          const points = lancesOrdenados.map(p => `${sx(p.asm)},${sy(p.valor)}`).join(' ');
+
+          elChart.innerHTML = `
+            <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Linha de lances por assembleia">
+              <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+              ${[0,25,50,75,100].map(g=>`
+                <line x1="${pad}" y1="${sy(g)}" x2="${W-pad}" y2="${sy(g)}" stroke="#223044" stroke-width="1" opacity="0.4"/>
+                <text x="${W-pad+4}" y="${sy(g)+4}" fill="#8aa0b6" font-size="10">${g}%</text>
+              `).join('')}
+              <polyline fill="none" stroke="#4b89ff" stroke-width="2" points="${points}"/>
+              ${lancesOrdenados.map(p=>`
+                <circle cx="${sx(p.asm)}" cy="${sy(p.valor)}" r="3" fill="#4b89ff"/>
+              `).join('')}
+              ${asmCont ? `
+                <line x1="${sx(asmCont)}" y1="${pad}" x2="${sx(asmCont)}" y2="${H-pad}" stroke="gold" stroke-width="2" />
+                <text x="${sx(asmCont)+4}" y="${pad+10}" fill="gold" font-size="10">Asm ${asmCont}</text>
+              ` : '' }
+            </svg>
+          `;
         }
       }
+
+      elBtn.addEventListener('click', ()=> renderCota(elIn.value));
+      elIn.addEventListener('keydown', e=>{ if(e.key==='Enter') renderCota(elIn.value); });
+      (() => { // tenta sugerir cota inicial
+        const pre = document.querySelector('.cell.lance, .cell.sorteio');
+        if(pre){ elIn.value = pre.textContent.trim(); }
+      })();
+
+      // Resumo por assembleia (lances vs contemplações por lance)
+      (function renderResumoAssembleia(){
+        const entries = Object.entries(byAssemLL).sort((a,b)=> Number(a[0])-Number(b[0]));
+        if(!entries.length) return;
+
+        const W=700, H=160, pad=28;
+        const maxLances = Math.max(...entries.map(([,v])=>v.lances));
+        const maxCont   = Math.max(...entries.map(([,v])=>v.contLance));
+        const maxY = Math.max(5, maxLances, maxCont);
+
+        const bw = (W-2*pad)/entries.length - 4;
+        const x = idx => pad + idx*((W-2*pad)/entries.length);
+        const scale = v => (v/maxY) * (H-2*pad);
+
+        const bars = entries.map(([asm, v], i) => {
+          const h1 = scale(v.lances);
+          const h2 = scale(v.contLance);
+          return `
+            <rect x="${x(i)}" y="${H-pad-h1}" width="${bw}" height="${h1}" fill="#4b89ff"/>
+            <rect x="${x(i)+bw+2}" y="${H-pad-h2}" width="${bw}" height="${h2}" fill="green"/>
+          `;
+        }).join('');
+
+        const axis = `<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#223044"/>`;
+
+        document.getElementById('ll-assem-chart').innerHTML = `
+          <svg viewBox="0 0 ${W} ${H}" class="svgblk" role="img" aria-label="Lances e contemplações por assembleia">
+            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+            ${axis}
+            ${bars}
+          </svg>
+        `;
+      })();
+
+      // ---------- Donut (mix) ----------
+      function renderDonutMix(pLance, pSorteio){
+        const el = document.getElementById('mix-vis');
+        if(!el) return;
+
+        const size = 220, stroke = 28;
+        const r = (size - stroke) / 2;
+        const C = 2 * Math.PI * r;
+        const lanceLen   = (pLance/100)   * C;
+        const sorteioLen = (pSorteio/100) * C;
+
+        el.innerHTML = `
+          <div>
+            <svg class="donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="Lance ${pLance}%, Sorteio ${pSorteio}%">
+              <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#253041" stroke-width="${stroke}"></circle>
+              <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="green" stroke-width="${stroke}"
+                stroke-dasharray="${lanceLen} ${C-lanceLen}" stroke-linecap="butt"></circle>
+              <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="gold" stroke-width="${stroke}"
+                stroke-dasharray="${sorteioLen} ${C-sorteioLen}" stroke-dashoffset="${-lanceLen}" stroke-linecap="butt"></circle>
+              <text x="${size/2}" y="${size/2}">${pLance}% / ${pSorteio}%</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><span class="legend-swatch swatch-lance"></span>Lance</div>
+              <div class="legend-item"><span class="legend-swatch swatch-sorteio"></span>Sorteio</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // ---------- Grade: pintar cotas contempladas ----------
+      let plotados = 0;
+      contemplacoes.forEach(item=>{
+        const raw = String(item.Cota||'').trim();
+        let numeroCota = raw.includes('-') ? parseInt(raw.split('-')[0],10) : parseInt(raw,10);
+        if(!isNaN(numeroCota) && numeroCota>=1 && numeroCota<=totalCelulas){
+          const cell = document.getElementById('cell-'+numeroCota);
+          if(cell){
+            cell.textContent = raw || numeroCota;
+            const tipo = String(item.Tipo||'');
+            if(tipo==='Sorteio') cell.classList.add('sorteio');
+            else if(tipo==='Lance') cell.classList.add('lance');
+            plotados++;
+          }
+        }
+      });
+      pillTotal.textContent = `Contemplações plotadas: ${plotados}`;
+    })
+    .catch(err=>{
+      console.error(err);
+      alert('Erro ao carregar dados. Confira os nomes/paths dos JSONs e recarregue a página.');
     });
-    pillTotal.textContent = `Contemplações plotadas: ${plotados}`;
-  })
-  .catch(err=>{
-    console.error(err);
-    alert('Erro ao carregar dados. Confira os nomes/paths dos JSONs e recarregue a página.');
-  });
-</script>
+  </script>
 </body>
 </html>
