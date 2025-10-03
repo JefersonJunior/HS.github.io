@@ -315,7 +315,7 @@
       barSorteio.style.height = pSorteio + '%';
       numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
       numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
-      parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : `—`;
+      parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela > 0 ? Math.round(somaParcela / contParcela) : '—');
       kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
 
       renderDonutMix(pLance, pSorteio);
