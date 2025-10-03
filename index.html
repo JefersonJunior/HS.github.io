@@ -64,6 +64,27 @@
     .list{margin-top:8px; display:grid; gap:6px; max-height:200px; overflow:auto}
     .pill{display:inline-block; background:#1a2330; border:1px solid #273246; padding:4px 8px; border-radius:999px; font-size:12px; color:#b9cee6}
 
+    .donut-wrap{
+      display:flex; align-items:center; justify-content:center;
+      height:220px; margin-top:4px; margin-bottom:2px;
+    }
+    .donut{
+      width:220px; height:220px;
+      transform:rotate(-90deg);
+    }
+    .donut text{
+      font-size:18px; font-weight:700; fill:#e8eef6;
+      transform:rotate(90deg); text-anchor:middle; dominant-baseline:middle;
+    }
+    .donut-legend{
+      display:flex; gap:12px; justify-content:center; margin-top:6px; font-size:12px; color:#8aa0b6;
+    }
+    .legend-item{display:flex; align-items:center; gap:6px}
+    .legend-swatch{width:10px; height:10px; border-radius:3px}
+    .swatch-lance{background:green}
+    .swatch-sorteio{background:gold}
+
+
     @media (max-width:1100px){
       .cards{grid-template-columns:repeat(2,minmax(160px,1fr))}
       .two-col{grid-template-columns: 1fr}
@@ -105,10 +126,16 @@
       <!-- Mix Lance x Sorteio + parcela média -->
       <div class="card">
         <div class="k-title">Mix de Contemplações</div>
+      
+        <!-- Novo: rosca SVG -->
+        <div id="mix-vis" class="donut-wrap" aria-label="Rosca Lance x Sorteio"></div>
+      
+        <!-- (opcional) barras antigas continuam -->
         <div class="bars" id="bars-mix" aria-label="Gráfico de barras: Lance x Sorteio">
           <div class="bar" title="Lance"><span id="bar-lance"></span></div>
           <div class="bar" title="Sorteio"><span id="bar-sorteio"></span></div>
         </div>
+      
         <div class="row">
           <div>
             <div class="bar-label">Lance</div>
@@ -269,6 +296,7 @@
     barSorteio.style.height = pSorteio + '%';
     numLance.textContent = `${tipoCounts.Lance} (${pLance}%)`;
     numSorteio.textContent = `${tipoCounts.Sorteio} (${pSorteio}%)`;
+    renderDonutMix(pLance, pSorteio);
     parcelaMedia.textContent = 'Parcela média na contemplação: ' + (contParcela>0 ? Math.round(somaParcela/contParcela) : '—');
     kpiMix.textContent = `Mix: Lance ${pLance}% · Sorteio ${pSorteio}% (total ${totalCont})`;
 
@@ -299,6 +327,36 @@
       pill.className='pill'; pill.textContent = `Assembleia ${asm}: ${qty}`;
       labelsAssem.appendChild(pill);
     });
+
+    function renderDonutMix(pLance, pSorteio){
+      const el = document.getElementById('mix-vis');
+      if(!el) return;
+    
+      const size = 220, stroke = 28;
+      const r = (size - stroke) / 2;
+      const C = 2 * Math.PI * r;
+      const lanceLen   = (pLance/100)   * C;
+      const sorteioLen = (pSorteio/100) * C;
+    
+      // SVG da rosca com 2 arcos (Lance e Sorteio)
+      el.innerHTML = `
+        <div>
+          <svg class="donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="Lance ${pLance}%, Sorteio ${pSorteio}%">
+            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#253041" stroke-width="${stroke}"></circle>
+            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="green" stroke-width="${stroke}"
+              stroke-dasharray="${lanceLen} ${C-lanceLen}" stroke-linecap="butt"></circle>
+            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="gold" stroke-width="${stroke}"
+              stroke-dasharray="${sorteioLen} ${C-sorteioLen}" stroke-dashoffset="${-lanceLen}" stroke-linecap="butt"></circle>
+    
+            <text x="${size/2}" y="${size/2}">${pLance}% / ${pSorteio}%</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-item"><span class="legend-swatch swatch-lance"></span>Lance</div>
+            <div class="legend-item"><span class="legend-swatch swatch-sorteio"></span>Sorteio</div>
+          </div>
+        </div>
+      `;
+    }
 
     // --- Grade 1..2000 mapeando contemplações
     let plotados = 0;
